@@ -25,7 +25,6 @@ import {
   Settings2,
   SlidersHorizontal,
   Sparkles,
-  Upload,
   Tag,
   X,
 } from "lucide-react";
@@ -66,7 +65,6 @@ export default function Home() {
   const [previewLanguage, setPreviewLanguage] = useState<"translation" | "source">("translation");
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   async function sync(nextRepo = repo) {
@@ -169,7 +167,7 @@ export default function Home() {
         <section className="content" id="library">
           <div className="content-head">
             <div><div className="breadcrumb"><span>工作台</span><span>/</span><strong>我的论文库</strong></div><h1>论文库</h1><p className="subtitle">原文与译文，集中在一个安静的阅读空间。</p></div>
-            <div className="head-actions"><button className="secondary-button" onClick={() => setIsUploadOpen(true)}><Upload size={16} />上传论文</button><button className="secondary-button" onClick={() => setIsSettingsOpen(true)}><Settings2 size={16} />仓库设置</button><button className="primary-button" onClick={() => sync()} disabled={isLoading}><RefreshCw size={16} className={isLoading ? "spin" : ""} />同步仓库</button></div>
+            <div className="head-actions"><button className="secondary-button" onClick={() => setIsSettingsOpen(true)}><Settings2 size={16} />仓库设置</button><button className="primary-button" onClick={() => sync()} disabled={isLoading}><RefreshCw size={16} className={isLoading ? "spin" : ""} />同步仓库</button></div>
           </div>
 
           <div className="stats-row"><div className="stats-block"><div className="stats-icon blue"><FileText size={18} /></div>{statLabel(papers.length, "全部论文")}</div><div className="stats-block"><div className="stats-icon green"><Languages size={18} /></div>{statLabel(translatedCount, "已有译文")}</div><div className="stats-block"><div className="stats-icon amber"><Clock3 size={18} /></div>{statLabel(papers.length - translatedCount, "待翻译")}</div><div className="stats-block"><div className="stats-icon violet"><Sparkles size={18} /></div>{statLabel(categories.length - 1, "研究领域")}</div></div>
@@ -192,7 +190,6 @@ export default function Home() {
       </div>
 
       {isSettingsOpen && <RepoModal repo={repo} onClose={() => setIsSettingsOpen(false)} onSave={saveRepo} />}
-      {isUploadOpen && <UploadModal papers={papers} repo={repo} onClose={() => setIsUploadOpen(false)} onDone={() => { setIsUploadOpen(false); sync(); }} />}
     </main>
   );
 }
@@ -204,58 +201,4 @@ function PaperRow({ paper, selected, onSelect }: { paper: Paper; selected: boole
 function RepoModal({ repo, onClose, onSave }: { repo: typeof initialRepo; onClose: () => void; onSave: (repo: typeof initialRepo) => void }) {
   const [draft, setDraft] = useState(repo);
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="repo-modal-title"><div className="modal-head"><div><span className="eyebrow">SOURCE SETTINGS</span><h2 id="repo-modal-title">连接 GitHub 仓库</h2></div><button className="icon-button bordered" onClick={onClose} aria-label="关闭"><X size={17} /></button></div><p className="modal-copy">网站会读取仓库里的 <code>library.json</code>；没有索引文件时，会自动扫描所有 PDF。</p><label>Owner<input value={draft.owner} onChange={(event) => setDraft({ ...draft, owner: event.target.value })} placeholder="例如 dx2331lxz" /></label><label>Repository<input value={draft.repo} onChange={(event) => setDraft({ ...draft, repo: event.target.value })} placeholder="例如 paper-library" /></label><label>Branch<input value={draft.branch} onChange={(event) => setDraft({ ...draft, branch: event.target.value })} placeholder="main" /></label><div className="modal-actions"><button className="secondary-button" onClick={onClose}>取消</button><button className="primary-button" onClick={() => onSave(draft)}><Github size={16} />保存并同步</button></div></div></div>;
-}
-
-function UploadModal({ papers, repo, onClose, onDone }: { papers: Paper[]; repo: typeof initialRepo; onClose: () => void; onDone: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [kind, setKind] = useState<"original" | "translation">("translation");
-  const [target, setTarget] = useState<string>("__new__");
-  const [paperId, setPaperId] = useState("");
-  const [title, setTitle] = useState("");
-  const [titleZh, setTitleZh] = useState("");
-  const [authors, setAuthors] = useState("");
-  const [year, setYear] = useState("");
-  const [category, setCategory] = useState("");
-  const [tags, setTags] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-
-  const isNew = target === "__new__";
-  const effectiveId = isNew ? paperId.trim().toLowerCase() : target;
-
-  async function submit() {
-    setError(undefined);
-    if (!file) { setError("请先选择 PDF 文件"); return; }
-    if (!/\.pdf$/i.test(file.name)) { setError("只支持 PDF 文件"); return; }
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(effectiveId)) { setError("论文 ID 只能用小写字母、数字和连字符（新建时填写）"); return; }
-    if (isNew && !title.trim()) { setError("新建论文请填写英文标题"); return; }
-    setBusy(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("kind", kind);
-      form.append("paperId", effectiveId);
-      if (isNew) {
-        form.append("meta", JSON.stringify({
-          title: title.trim(),
-          titleZh: titleZh.trim() || undefined,
-          authors: authors.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-          year: year.trim() || undefined,
-          category: category.trim() || undefined,
-          tags: tags.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-        }));
-      }
-      const params = new URLSearchParams(repo);
-      const res = await fetch(`/api/upload?${params.toString()}`, { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "上传失败");
-      onDone();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "上传失败");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title"><div className="modal-head"><div><span className="eyebrow">UPLOAD PDF</span><h2 id="upload-modal-title">上传论文 PDF</h2></div><button className="icon-button bordered" onClick={onClose} aria-label="关闭"><X size={17} /></button></div><p className="modal-copy">PDF 会写入仓库 <code>papers/{"{id}"}/</code> 目录（原文 → <code>original.pdf</code>，译文 → <code>translation.pdf</code>），并同步更新 <code>library.json</code>。</p><label>PDF 文件<input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} />{file && <small className="file-hint">{file.name}（{(file.size / 1048576).toFixed(2)} MB）</small>}</label><label>类型<select value={kind} onChange={(event) => setKind(event.target.value as "original" | "translation")}><option value="translation">译文（中文）</option><option value="original">原文（英文）</option></select></label><label>归属论文<select value={target} onChange={(event) => setTarget(event.target.value)}><option value="__new__">新建论文条目…</option>{papers.map((p) => <option key={p.id} value={p.id}>{p.titleZh || p.title}</option>)}</select></label>{isNew && <><label>论文 ID（英文小写，用连字符）<input value={paperId} onChange={(event) => setPaperId(event.target.value)} placeholder="例如 my-paper-2026" /></label><label>英文标题<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Paper title" /></label><label>中文标题<input value={titleZh} onChange={(event) => setTitleZh(event.target.value)} placeholder="选填" /></label><label>作者（逗号分隔）<input value={authors} onChange={(event) => setAuthors(event.target.value)} placeholder="张三, 李四" /></label><div className="form-row"><label>年份<input value={year} onChange={(event) => setYear(event.target.value)} placeholder="2026" /></label><label>领域<input value={category} onChange={(event) => setCategory(event.target.value)} placeholder="例如 大模型推理" /></label></div><label>标签（逗号分隔）<input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="KV缓存, 长上下文" /></label></>}{error && <p className="form-error">{error}</p>}<div className="modal-actions"><button className="secondary-button" onClick={onClose} disabled={busy}>取消</button><button className="primary-button" onClick={submit} disabled={busy}><Upload size={16} />{busy ? "上传中…" : "上传并同步"}</button></div></div></div>;
 }
