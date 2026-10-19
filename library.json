@@ -9,7 +9,7 @@
     "tags": ["KV缓存", "长上下文", "Strata", "OSDI"],
     "abstract": "提出 Strata，一个面向长上下文 LLM 服务的分层上下文缓存框架：GPU 辅助的 I/O 机制解决碎片化 KV 布局导致的小传输带宽利用问题；引入延迟命中（delayed hit）感知的瞬态节点与调度机制，避免调度器忽略缓存加载延迟带来的吞吐下降。",
     "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/xie-zhiqiang",
-    "translationPath": "papers/strata-osdi26/zh.pdf",
+    "translationPath": "papers/strata-osdi26/OSDI26-01_Strata_Hierarchical_Context_Caching_for_Long_Context_Language_Model_Serving.no_watermark.zh.mono.pdf",
     "status": "translated",
     "updatedAt": "2026-10-19"
   }
