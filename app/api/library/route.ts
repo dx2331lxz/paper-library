@@ -27,12 +27,17 @@ async function githubFetch<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-function githubRawBase(owner: string, repo: string, branch: string) {
-  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(branch)}`;
+// 通过站内 /api/pdf 代理提供 PDF，统一以 application/pdf + inline 响应，
+// 避免浏览器把 raw.githubusercontent.com 的 application/octet-stream 当成下载。
+function toPdfUrl(owner: string, repo: string, branch: string, path: string) {
+  return `/api/pdf?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}&path=${path
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
 }
 
 async function fetchGithubLibrary(owner: string, repo: string, branch: string): Promise<Paper[]> {
-  const base = githubRawBase(owner, repo, branch);
+  const pdfUrl = (path: string) => toPdfUrl(owner, repo, branch, path);
   try {
     const index = await githubFetch<GitHubContent>(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/library.json?ref=${encodeURIComponent(branch)}`);
     if (index.content && index.encoding === "base64") {
@@ -42,8 +47,8 @@ async function fetchGithubLibrary(owner: string, repo: string, branch: string): 
           const paper = normalizePaper(item as Partial<Paper>, "paper");
           return normalizePaper({
             ...paper,
-            sourceUrl: paper.sourceUrl || (paper.sourcePath ? `${base}/${paper.sourcePath.split("/").map(encodeURIComponent).join("/")}` : undefined),
-            translationUrl: paper.translationUrl || (paper.translationPath ? `${base}/${paper.translationPath.split("/").map(encodeURIComponent).join("/")}` : undefined),
+            sourceUrl: paper.sourceUrl || (paper.sourcePath ? pdfUrl(paper.sourcePath) : undefined),
+            translationUrl: paper.translationUrl || (paper.translationPath ? pdfUrl(paper.translationPath) : undefined),
           }, paper.id);
         });
       }
@@ -54,7 +59,7 @@ async function fetchGithubLibrary(owner: string, repo: string, branch: string): 
 
   const tree = await githubFetch<GitTree>(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
   const pdfs = (tree.tree || []).filter((item) => item.type === "blob" && item.path?.toLowerCase().endsWith(".pdf"));
-  return mergeInferredPapers(pdfs.map((item) => inferPaperFromPdfPath(item.path || "paper.pdf", base)));
+  return mergeInferredPapers(pdfs.map((item) => inferPaperFromPdfPath(item.path || "paper.pdf", pdfUrl)));
 }
 
 export async function GET(request: NextRequest) {
