@@ -1,0 +1,16 @@
+[
+  {
+    "id": "attention-is-all-you-need",
+    "title": "Attention Is All You Need",
+    "titleZh": "注意力机制就是一切",
+    "authors": ["Ashish Vaswani", "Noam Shazeer"],
+    "year": 2017,
+    "category": "机器学习",
+    "tags": ["Transformer", "NLP"],
+    "abstract": "论文摘要。",
+    "sourcePath": "papers/attention-is-all-you-need/original.pdf",
+    "translationPath": "papers/attention-is-all-you-need/zh.pdf",
+    "status": "translated",
+    "updatedAt": "2026-10-18"
+  }
+]
