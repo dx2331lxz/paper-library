@@ -142,7 +142,7 @@ export default function Home() {
 
       <div className="page" id="top">
         <aside className={`sidebar ${isMobileNavOpen ? "is-open" : ""}`}>
-          <div className="sidebar-section repo-card">
+          <div className="sidebar-section repo-card" id="about">
             <div className="repo-card-head"><span className="github-icon"><Github size={16} /></span><span className="eyebrow">GITHUB REPOSITORY</span><button className="icon-button tiny" onClick={() => setIsSettingsOpen(true)} aria-label="配置仓库"><Settings2 size={15} /></button></div>
             <div className="repo-name">{repo.owner} / {repo.repo}</div>
             <div className="repo-meta"><span className="status-dot" />{source === "github" ? "已连接" : "示例数据"}<span className="branch">{repo.branch}</span></div>
