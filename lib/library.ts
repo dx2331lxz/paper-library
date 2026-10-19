@@ -49,14 +49,14 @@ export function normalizePaper(input: Partial<Paper>, fallbackId: string): Paper
   };
 }
 
-export function inferPaperFromPdfPath(path: string, rawBase: string): Paper {
+export function inferPaperFromPdfPath(path: string, toUrl: (path: string) => string): Paper {
   const parts = path.split("/");
   const filename = parts.at(-1)?.replace(/\.pdf$/i, "") || "paper";
   const folder = parts.length > 1 ? parts.at(-2) || filename : filename;
   const isTranslation = /(^|[-_.])(zh|cn|中文|translated|translation|译文)([-_.]|$)/i.test(filename) || /(^|\/)(zh|中文|translated|translation)(\/|$)/i.test(path);
   const stem = folder.replace(/[-_](zh|cn|中文|translated|translation|译文)$/i, "");
   const title = stem.replace(/[-_]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-  const url = `${rawBase}/${path.split("/").map(encodeURIComponent).join("/")}`;
+  const url = toUrl(path);
   return normalizePaper({
     id: stem.toLowerCase().replace(/[^a-z0-9]+/g, "-") || filename,
     title,
